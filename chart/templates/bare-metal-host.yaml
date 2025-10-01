@@ -19,16 +19,16 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: {{ $bmcSecret.secretStore.name | quote }}
-    kind: {{ $bmcSecret.secretStore.kind | quote }}
+    name: {{ $bmcSecret.secretStore.name }}
+    kind: {{ $bmcSecret.secretStore.kind }}
   target:
     name: "{{ .name }}-bmc-secret"
     creationPolicy: Owner
   data:
 {{- range $bmcSecret.data }}
-  - secretKey: {{ .secretKey | quote }}
+  - secretKey: {{ .secretKey }}
     remoteRef:
-      key: {{ $bmcSecret.remoteKey | quote }}
+      key: {{ $bmcSecret.remoteKey }}
       property: "{{ $hostName }}-{{ .remoteProperty }}"
 {{- end }}
 ---
