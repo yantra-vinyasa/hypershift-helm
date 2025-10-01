@@ -1,0 +1,104 @@
+# Default values for deploy-cluster chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Base domain for the cluster
+baseDomain: example.com
+
+# Cluster metadata
+metadata:
+  name: example-cluster
+
+# Compute nodes configuration
+compute:
+  - name: worker
+    replicas: 2
+
+# Networking configuration
+networking:
+  clusterNetwork:
+    - cidr: 10.128.0.0/14
+      hostPrefix: 23
+  networkType: OVNKubernetes
+  serviceNetwork:
+    - 172.30.0.0/16
+
+# Platform configuration for bare metal
+platform:
+  baremetal:
+    apiVIP: 192.168.1.100
+    ingressVIP: 192.168.1.101
+    hosts:
+      - name: openshift-worker-0
+        role: worker
+        bmc:
+          address: "redfish-virtualmedia://192.168.1.10/redfish/v1/Systems/1"
+          credentialsName: "bmc-credentials"
+        bootMACAddress: "00:11:22:33:44:55"
+        rootDeviceHints:
+          hctl: "1:0:0:0"
+        networkConfig:
+          interfaces:
+            - name: eno1
+              type: ethernet
+              mac-address: "00:11:22:33:44:55"
+              state: up
+              ipv4:
+                enabled: true
+                dhcp: true
+              ipv6:
+                enabled: false
+      - name: openshift-worker-1
+        role: worker
+        bmc:
+          address: "redfish-virtualmedia://192.168.1.11/redfish/v1/Systems/1"
+          credentialsName: "bmc-credentials"
+        bootMACAddress: "00:11:22:33:44:66"
+        rootDeviceHints:
+          hctl: "2:0:0:0"
+        networkConfig:
+          interfaces:
+            - name: eno1
+              type: ethernet
+              mac-address: "00:11:22:33:44:66"
+              state: up
+              ipv4:
+                enabled: true
+                dhcp: true
+              ipv6:
+                enabled: false
+
+# Pull secret for container images
+pullSecret: "eyJhdXRocyI6eyJxdWF5LmlvIjp7InVzZXJuYW1lIjoiZXhhbXBsZSIsInBhc3N3b3JkIjoiZXhhbXBsZSIsImF1dGgiOiJleGFtcGxlIn19fQ=="
+
+# SSH key for cluster access
+sshKey: |
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhA... example@example.com
+
+# HyperShift specific configuration
+hypershift:
+  osImageVersion: "4.12"
+  clusterImageSet: quay.io/openshift-release-dev/ocp-release:4.12.0-x86_64
+  additionalNTPSources:
+    - pool.ntp.org
+  olmCatalogPlacement: "guest"
+  disableAllDefaultSources: false
+  nodePoolConfigs:
+    - name: worker
+      osImageVersion: "4.12"
+      imageSet: quay.io/openshift-release-dev/ocp-release:4.12.0-x86_64
+
+# MetalLB Configuration
+metallb:
+  apiAddressPool: "example-cluster-api-address-pool"
+
+# Additional configuration (optional)
+# additionalTrustBundle: |
+#   -----BEGIN CERTIFICATE-----
+#   ...
+#   -----END CERTIFICATE-----
+
+# imageContentSources:
+#   - mirrors:
+#     - quay-mirror.example/openshift-release-dev/ocp-release
+#     source: quay.io/openshift-release-dev/ocp-release
