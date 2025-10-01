@@ -3,11 +3,11 @@
 # Declare variables to be passed into your templates.
 
 # Base domain for the cluster
-baseDomain: example.com
+baseDomain: test.com
 
 # Cluster metadata
 metadata:
-  name: example-cluster
+  name: test-cluster
 
 # Compute nodes configuration
 compute:
@@ -26,22 +26,23 @@ networking:
 # Platform configuration for bare metal
 platform:
   baremetal:
-    apiVIP: 192.168.1.100
-    ingressVIP: 192.168.1.101
+    apiVIP: 192.168.2.2
+    ingressVIP: 192.168.3.3
     hosts:
       - name: openshift-worker-0
         role: worker
         bmc:
-          address: "redfish-virtualmedia://192.168.1.10/redfish/v1/Systems/1"
-          credentialsName: "bmc-credentials"
-        bootMACAddress: "00:11:22:33:44:55"
+          address: "redfish-virtualmedia://10.100.100.100/redfish/v1/Systems/1"
+          username: admin
+          password: admin
+        bootMACAddress: aa:aa:aa:aa:aa:aa
         rootDeviceHints:
           hctl: "1:0:0:0"
         networkConfig:
           interfaces:
             - name: eno1
               type: ethernet
-              mac-address: "00:11:22:33:44:55"
+              mac-address: aa:aa:aa:aa:aa:aa
               state: up
               ipv4:
                 enabled: true
@@ -51,16 +52,17 @@ platform:
       - name: openshift-worker-1
         role: worker
         bmc:
-          address: "redfish-virtualmedia://192.168.1.11/redfish/v1/Systems/1"
-          credentialsName: "bmc-credentials"
-        bootMACAddress: "00:11:22:33:44:66"
+          address: "redfish-virtualmedia://10.100.100.200/redfish/v1/Systems/1"
+          username: admin
+          password: admin
+        bootMACAddress: bb:bb:bb:bb:bb:bb
         rootDeviceHints:
           hctl: "2:0:0:0"
         networkConfig:
           interfaces:
             - name: eno1
               type: ethernet
-              mac-address: "00:11:22:33:44:66"
+              mac-address: bb:bb:bb:bb:bb:bb
               state: up
               ipv4:
                 enabled: true
@@ -69,7 +71,7 @@ platform:
                 enabled: false
 
 # Pull secret for container images
-pullSecret: "eyJhdXRocyI6eyJxdWF5LmlvIjp7InVzZXJuYW1lIjoiZXhhbXBsZSIsInBhc3N3b3JkIjoiZXhhbXBsZSIsImF1dGgiOiJleGFtcGxlIn19fQ=="
+pullSecret: '{"auths":{}}'
 
 # SSH key for cluster access
 sshKey: |
@@ -79,18 +81,10 @@ sshKey: |
 hypershift:
   osImageVersion: "4.12"
   clusterImageSet: quay.io/openshift-release-dev/ocp-release:4.12.0-x86_64
-  additionalNTPSources:
-    - pool.ntp.org
-  olmCatalogPlacement: "guest"
-  disableAllDefaultSources: false
-  nodePoolConfigs:
-    - name: worker
-      osImageVersion: "4.12"
-      imageSet: quay.io/openshift-release-dev/ocp-release:4.12.0-x86_64
 
 # MetalLB Configuration
 metallb:
-  apiAddressPool: "example-cluster-api-address-pool"
+  apiAddressPool: "test-cluster-api-address-pool"
 
 # Additional configuration (optional)
 # additionalTrustBundle: |
