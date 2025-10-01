@@ -1,3 +1,14 @@
 apiVersion: v1
-entries: {}
-generated: 2024-01-01T00:00:00Z
+entries:
+  deploy-cluster:
+  - apiVersion: v2
+    created: "2025-10-01T12:20:59.24674937Z"
+    description: A Helm chart for deploying HyperShift clusters on bare metal with
+      separate MetalLB deployment
+    digest: ef90b80eda89edd270f5a851531def88032f8906351b30fe3fd0cc74df639c72
+    name: deploy-cluster
+    type: application
+    urls:
+    - https://github.com/yantra-vinyasa/hypershift-helm/releases/download/deploy-cluster-0.2.0/deploy-cluster-0.2.0.tgz
+    version: 0.2.0
+generated: "2025-10-01T12:20:59.246760701Z"
