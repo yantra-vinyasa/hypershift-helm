@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -28,6 +30,11 @@ jobs:
         uses: azure/setup-helm@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package Chart
+        run: |
+          helm package chart/
+          helm lint chart/
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.7.0

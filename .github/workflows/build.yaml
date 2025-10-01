@@ -20,6 +20,18 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check code
+      - name: Lint Charts
+        run: |
+          helm lint chart/
+          
+      - name: Package Charts
+        run: |
+          helm package chart/
+          
+      - name: Run Tests
         run: |
           ./tests/run_tests.sh
+          
+      - name: Test Chart Installation
+        run: |
+          helm install test-cluster ./chart --values tests/configs/minimal.yaml --dry-run

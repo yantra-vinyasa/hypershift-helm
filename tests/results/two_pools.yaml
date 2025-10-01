@@ -1,40 +1,15 @@
 ---
-# Source: deploy-cluster/templates/Namespace.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   name: "test-cluster"
 ---
-# Source: deploy-cluster/templates/RBAC.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: hypershift-installer
   namespace: "test-cluster"
 ---
-# Source: deploy-cluster/templates/BareMetalHost.yaml
-apiVersion: v1
-kind: Secret
-data:
-  password: "YWRtaW4="
-  username: "YWRtaW4="
-metadata:
-  name: "openshift-worker-0-bmc-secret"
-  namespace: "test-cluster"
-type: Opaque
----
-# Source: deploy-cluster/templates/BareMetalHost.yaml
-apiVersion: v1
-kind: Secret
-data:
-  password: "YWRtaW4="
-  username: "YWRtaW4="
-metadata:
-  name: "openshift-worker-1-bmc-secret"
-  namespace: "test-cluster"
-type: Opaque
----
-# Source: deploy-cluster/templates/HostedCluster.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -44,126 +19,6 @@ data:
   id_rsa.pub: "c3NoLXJzYSAuLi4K"
 type: Opaque
 ---
-# Source: deploy-cluster/templates/PullSecret.yaml
-apiVersion: v1
-kind: Secret
-data:
-  .dockerconfigjson: "eyJhdXRocyI6e319"
-metadata:
-  name: assisted-deployment-pull-secret
-  namespace: "test-cluster"
-type: kubernetes.io/dockerconfigjson
----
-# Source: deploy-cluster/templates/PostSync.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cluster-setup
-  namespace: "test-cluster"
-data:
-  wait_node.sh: |
-    set -e
-
-    node_count=0
-    until [ "${node_count}" -gt 0 ]
-    do
-      sleep 60
-      node_count=$(oc get node --no-headers | wc -l)
-    done
-    oc wait --timeout=30m --for=condition=ready node --all
-  ingress_setup.sh: |
-    set -e
-
-    cat << EOF | oc apply -f -
-    apiVersion: v1
-    kind: Namespace
-    metadata:
-      name: metallb-system
-    EOF
-
-    cat << EOF | oc apply -f -
-    apiVersion: operators.coreos.com/v1
-    kind: OperatorGroup
-    metadata:
-      name: metallb-operator
-      namespace: metallb-system
-    EOF
-
-    cat << EOF | oc apply -f -
-    apiVersion: operators.coreos.com/v1alpha1
-    kind: Subscription
-    metadata:
-      name: metallb-operator-sub
-      namespace: metallb-system
-    spec:
-      channel: stable
-      name: metallb-operator
-      source: redhat-operators 
-      sourceNamespace: openshift-marketplace
-    EOF
-
-    sleep 10
-    oc wait --timeout=10m --for=jsonpath='{.status.state}'=AtLatestKnown -n metallb-system sub/metallb-operator-sub
-    csv=$(oc get -n metallb-system sub/metallb-operator-sub -o jsonpath='{.status.installedCSV}')
-    oc wait --timeout=10m --for=jsonpath='{.status.phase}'=Succeeded -n metallb-system csv/$csv
-
-    cat << EOF | oc apply -f -
-    apiVersion: metallb.io/v1beta1
-    kind: MetalLB
-    metadata:
-      name: metallb
-      namespace: metallb-system
-    EOF
-
-    oc wait --timeout=10m --for=condition=available -n metallb-system metallb/metallb
-
-    cat << EOF | oc apply -f -
-    apiVersion: metallb.io/v1beta1
-    kind: IPAddressPool
-    metadata:
-      name: ingress-address-pool
-      namespace: metallb-system
-    spec:
-      addresses:
-        - 192.168.3.3/32
-      autoAssign: false
-    EOF
-
-    cat << EOF | oc apply -f -
-    apiVersion: metallb.io/v1beta1
-    kind: L2Advertisement
-    metadata:
-      name: ingress-adv
-      namespace: metallb-system
-    spec:
-      ipAddressPools:
-        - ingress-address-pool
-    EOF
-
-    cat << EOF | oc apply -f -
-    kind: Service
-    apiVersion: v1
-    metadata:
-      annotations:
-        metallb.universe.tf/address-pool: ingress-address-pool
-      name: metallb-ingress
-      namespace: openshift-ingress
-    spec:
-      ports:
-        - name: http
-          protocol: TCP
-          port: 80
-          targetPort: 80
-        - name: https
-          protocol: TCP
-          port: 443
-          targetPort: 443
-      selector:
-        ingresscontroller.operator.openshift.io/deployment-ingresscontroller: default
-      type: LoadBalancer
-    EOF
----
-# Source: deploy-cluster/templates/CApi.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -177,7 +32,6 @@ rules:
     verbs:
       - "*"
 ---
-# Source: deploy-cluster/templates/RBAC.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -193,7 +47,6 @@ rules:
       - get
       - patch
 ---
-# Source: deploy-cluster/templates/RBAC.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -210,7 +63,6 @@ roleRef:
   name: hypershift-installer-role
   apiGroup: rbac.authorization.k8s.io
 ---
-# Source: deploy-cluster/templates/BareMetalHost.yaml
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
 metadata:
@@ -233,7 +85,6 @@ spec:
   rootDeviceHints:
     hctl: "1:0:0:0"
 ---
-# Source: deploy-cluster/templates/BareMetalHost.yaml
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
 metadata:
@@ -256,7 +107,71 @@ spec:
   rootDeviceHints:
     hctl: "2:0:0:0"
 ---
-# Source: deploy-cluster/templates/HostedCluster.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: "openshift-worker-0-bmc-secret"
+  namespace: "test-cluster"
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: bmc-secret-store
+    kind: SecretStore
+  target:
+    name: "openshift-worker-0-bmc-secret"
+    creationPolicy: Owner
+  data:
+  - secretKey: username
+    remoteRef:
+      key: bmc-credentials
+      property: "openshift-worker-0-username"
+  - secretKey: password
+    remoteRef:
+      key: bmc-credentials
+      property: "openshift-worker-0-password"
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: "openshift-worker-1-bmc-secret"
+  namespace: "test-cluster"
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: bmc-secret-store
+    kind: SecretStore
+  target:
+    name: "openshift-worker-1-bmc-secret"
+    creationPolicy: Owner
+  data:
+  - secretKey: username
+    remoteRef:
+      key: bmc-credentials
+      property: "openshift-worker-1-username"
+  - secretKey: password
+    remoteRef:
+      key: bmc-credentials
+      property: "openshift-worker-1-password"
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: assisted-deployment-pull-secret
+  namespace: "test-cluster"
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: pull-secret-store
+    kind: SecretStore
+  target:
+    name: assisted-deployment-pull-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: .dockerconfigjson
+    remoteRef:
+      key: pull-secret
+      property: dockerconfigjson
+---
 apiVersion: hypershift.openshift.io/v1beta1
 kind: HostedCluster
 metadata:
@@ -306,18 +221,6 @@ spec:
       servicePublishingStrategy:
         type: Route
 ---
-# Source: deploy-cluster/templates/MetalLB.yaml
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-  name: "test-cluster-api-address-pool"
-  namespace: metallb-system
-spec:
-  addresses:
-    - 192.168.2.2/32
-  autoAssign: false
----
-# Source: deploy-cluster/templates/InfraEnv.yaml
 apiVersion: agent-install.openshift.io/v1beta1
 kind: InfraEnv
 metadata:
@@ -336,7 +239,6 @@ spec:
   additionalNTPSources:
     - pool.ntp.org
 ---
-# Source: deploy-cluster/templates/InfraEnv.yaml
 apiVersion: agent-install.openshift.io/v1beta1
 kind: InfraEnv
 metadata:
@@ -355,17 +257,6 @@ spec:
   additionalNTPSources:
     - pool.ntp.org
 ---
-# Source: deploy-cluster/templates/MetalLB.yaml
-apiVersion: metallb.io/v1beta1
-kind: L2Advertisement
-metadata:
-  name: "test-cluster-api-adv"
-  namespace: metallb-system
-spec:
-  ipAddressPools:
-    - "test-cluster-api-address-pool"
----
-# Source: deploy-cluster/templates/NMStateConfig.yaml
 apiVersion: agent-install.openshift.io/v1beta1
 kind: NMStateConfig
 metadata:
@@ -391,7 +282,6 @@ spec:
     - name: "eno1"
       macAddress: "aa:aa:aa:aa:aa:aa"
 ---
-# Source: deploy-cluster/templates/NMStateConfig.yaml
 apiVersion: agent-install.openshift.io/v1beta1
 kind: NMStateConfig
 metadata:
@@ -417,7 +307,6 @@ spec:
     - name: "eno1"
       macAddress: "bb:bb:bb:bb:bb:bb"
 ---
-# Source: deploy-cluster/templates/NodePool.yaml
 apiVersion: hypershift.openshift.io/v1beta1
 kind: NodePool
 metadata:
@@ -442,7 +331,6 @@ spec:
     - name: configMap1
     - name: configMap2
 ---
-# Source: deploy-cluster/templates/NodePool.yaml
 apiVersion: hypershift.openshift.io/v1beta1
 kind: NodePool
 metadata:
@@ -467,7 +355,6 @@ spec:
     - name: configMap1
     - name: configMap3
 ---
-# Source: deploy-cluster/templates/PatchApiSvc.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -482,73 +369,43 @@ spec:
     spec:
       serviceAccountName: hypershift-installer
       containers:
-        - name: ose-client
-          image: registry.redhat.io/openshift4/ose-cli:latest
-          command:
-            - oc
-          args:
-            - patch
-            - service
-            - kube-apiserver
-            - -n
-            - "test-cluster-test-cluster"
-            - -p
-            - '{"metadata": {"annotations": {"metallb.universe.tf/address-pool": "test-cluster-api-address-pool"}}}'
-      restartPolicy: OnFailure
----
-# Source: deploy-cluster/templates/PostSync.yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: worker-setup
-  namespace: "test-cluster"
-  annotations:
-    helm.sh/hook: post-install
-    helm.sh/hook-weight: "10"
-spec:
-  ttlSecondsAfterFinished: 600
-  template:
-    spec:
-      serviceAccountName: hypershift-installer
-      initContainers:
-        - name: wait-node
+        - name: patch-api-svc
           image: registry.redhat.io/openshift4/ose-cli:latest
           command:
             - bash
           args:
-            - /script/wait_node.sh
+            - -c
+            - |
+              set -e
+              
+              # Wait for the API service to be available
+              echo "Waiting for API service to be available..."
+              oc wait --timeout=10m --for=condition=available service/kube-apiserver -n "test-cluster-test-cluster"
+              
+              # Get the MetalLB address pool name
+              ADDRESS_POOL="test-cluster-api-address-pool"
+              
+              echo "Patching API service with MetalLB address pool: $ADDRESS_POOL"
+              
+              # Patch the service with MetalLB annotation
+              oc patch service kube-apiserver \
+                -n "test-cluster-test-cluster" \
+                -p '{"metadata": {"annotations": {"metallb.universe.tf/address-pool": "'$ADDRESS_POOL'"}}}'
+              
+              echo "Successfully patched API service with MetalLB configuration"
+              
+              # Verify the patch was applied
+              oc get service kube-apiserver -n "test-cluster-test-cluster" -o jsonpath='{.metadata.annotations.metallb\.universe\.tf/address-pool}'
+              echo ""
           env:
             - name: KUBECONFIG
               value: "/secrets/kubeconfig"
           volumeMounts:
             - name: kubeconfig
               mountPath: "/secrets"
-              readOnly: true
-            - name: cluster-setup
-              mountPath: "/script"
-              readOnly: true
-      containers:
-        - name: configure-ingress
-          image: registry.redhat.io/openshift4/ose-cli:latest
-          command:
-            - bash
-          args:
-            - /script/ingress_setup.sh
-          env:
-            - name: KUBECONFIG
-              value: "/secrets/kubeconfig"
-          volumeMounts:
-            - name: kubeconfig
-              mountPath: "/secrets"
-              readOnly: true
-            - name: cluster-setup
-              mountPath: "/script"
               readOnly: true
       restartPolicy: OnFailure
       volumes:
         - name: kubeconfig
           secret:
             secretName: "test-cluster-admin-kubeconfig"
-        - name: cluster-setup
-          configMap:
-            name: cluster-setup

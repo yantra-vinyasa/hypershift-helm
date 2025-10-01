@@ -37,6 +37,16 @@ hypershift:
       osImageVersion: "4.11"
       imageSet: quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64 # Optional, will default to the value of clusterImageSet
 
+# MetalLB Configuration
+# Note: MetalLB must be deployed separately on the management cluster before deploying this chart
+# The API VIP address will be automatically patched to use the MetalLB address pool
+metallb:
+  apiAddressPool: "<cluster-name>-api-address-pool" # Must match the MetalLB IPAddressPool name
+
+# Pull Secret Configuration
+# ExternalSecret is created by default - no configuration needed
+# The chart will create an ExternalSecret that references your secret store
+
 baseDomain: <cluster_domain>
 compute:
   - name: worker # This will be the name of the NodePool that is created
@@ -59,8 +69,11 @@ platform:
         role: worker # Should match the name of the NodePool
         bmc:
           address: "redfish-virtualmedia://<bmc_ip_address>/redfish/v1/Systems/1"
-          username: <username>
-          password: <password>
+          # Option 1: Use ExternalSecret (recommended for production)
+          credentialsName: "bmc-credentials"
+          # Option 2: Use direct credentials (for testing only)
+          # username: <username>
+          # password: <password>
         bootMACAddress: <nic1_mac_address>
         rootDeviceHints:
           hctl: "1:0:0:0"
@@ -79,8 +92,11 @@ platform:
         role: worker # Should match the name of the NodePool
         bmc:
           address: "redfish-virtualmedia://<bmc_ip_address>/redfish/v1/Systems/1"
-          username: <username>
-          password: <password>
+          # Option 1: Use ExternalSecret (recommended for production)
+          credentialsName: "bmc-credentials"
+          # Option 2: Use direct credentials (for testing only)
+          # username: <username>
+          # password: <password>
         bootMACAddress: <nic1_mac_address>
         rootDeviceHints:
           hctl: "2:0:0:0"

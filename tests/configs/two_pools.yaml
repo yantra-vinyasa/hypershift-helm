@@ -18,6 +18,13 @@ hypershift:
         - name: configMap1
         - name: configMap3
 
+# MetalLB Configuration
+metallb:
+  apiAddressPool: "test-cluster-api-address-pool"
+
+# Pull Secret Configuration
+# Using ExternalSecret by default - no pullSecretRef needed
+
 baseDomain: test.com
 compute:
   - name: poolone

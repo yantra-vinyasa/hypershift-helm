@@ -46,7 +46,7 @@ spec:
   {{- end }}
 {{- end }}
   pullSecret:
-    name: assisted-deployment-pull-secret
+    name: {{ if hasKey .Values "pullSecretRef" }}{{ .Values.pullSecretRef | quote }}{{ else }}assisted-deployment-pull-secret{{ end }}
   sshKey:
     name: "{{ .Values.metadata.name }}-sshkey"
 {{- if hasKey .Values "fips" }}

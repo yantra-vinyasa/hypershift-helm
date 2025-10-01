@@ -12,16 +12,47 @@ spec:
     spec:
       serviceAccountName: hypershift-installer
       containers:
-        - name: ose-client
+        - name: patch-api-svc
           image: {{ include "ocp_client" . }}
           command:
-            - oc
+            - bash
           args:
-            - patch
-            - service
-            - kube-apiserver
-            - -n
-            - "{{ .Values.metadata.name }}-{{ .Values.metadata.name }}"
-            - -p
-            - '{"metadata": {"annotations": {"metallb.universe.tf/address-pool": "{{ .Values.metadata.name }}-api-address-pool"}}}'
+            - -c
+            - |
+              set -e
+              
+              # Wait for the API service to be available
+              echo "Waiting for API service to be available..."
+              oc wait --timeout=10m --for=condition=available service/kube-apiserver -n "{{ .Values.metadata.name }}-{{ .Values.metadata.name }}"
+              
+              # Get the MetalLB address pool name
+              {{- if hasKey .Values "metallb" }}
+              ADDRESS_POOL="{{ .Values.metallb.apiAddressPool }}"
+              {{- else }}
+              ADDRESS_POOL="{{ .Values.metadata.name }}-api-address-pool"
+              {{- end }}
+              
+              echo "Patching API service with MetalLB address pool: $ADDRESS_POOL"
+              
+              # Patch the service with MetalLB annotation
+              oc patch service kube-apiserver \
+                -n "{{ .Values.metadata.name }}-{{ .Values.metadata.name }}" \
+                -p '{"metadata": {"annotations": {"metallb.universe.tf/address-pool": "'$ADDRESS_POOL'"}}}'
+              
+              echo "Successfully patched API service with MetalLB configuration"
+              
+              # Verify the patch was applied
+              oc get service kube-apiserver -n "{{ .Values.metadata.name }}-{{ .Values.metadata.name }}" -o jsonpath='{.metadata.annotations.metallb\.universe\.tf/address-pool}'
+              echo ""
+          env:
+            - name: KUBECONFIG
+              value: "/secrets/kubeconfig"
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: "/secrets"
+              readOnly: true
       restartPolicy: OnFailure
+      volumes:
+        - name: kubeconfig
+          secret:
+            secretName: "{{ .Values.metadata.name }}-admin-kubeconfig"

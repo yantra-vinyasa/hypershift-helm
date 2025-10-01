@@ -1,7 +1,7 @@
 apiVersion: v2
 name: deploy-cluster
-description: A Helm chart for deploying HyperShift clusters on bare metal
+description: A Helm chart for deploying HyperShift clusters on bare metal with separate MetalLB deployment
 
 type: application
 
-version: 0.1.24
+version: 0.2.0
