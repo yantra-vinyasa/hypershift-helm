@@ -70,8 +70,31 @@ platform:
               ipv6:
                 enabled: false
 
-# Pull secret for container images
-pullSecret: '{"auths":{}}'
+# External Secrets Configuration
+externalSecrets:
+  # Pull secret for container registry authentication
+  - name: "assisted-deployment-pull-secret"
+    type: "pull-secret"
+    # Use existing secret instead of ExternalSecret
+    # ref: "my-existing-pull-secret"
+    secretStore:
+      name: "pull-secret-store"
+      kind: "SecretStore"
+    remoteKey: "pull-secret"
+    remoteProperty: "dockerconfigjson"
+  
+  # BMC credentials for bare metal hosts
+  - name: "bmc-credentials"
+    type: "bmc-secret"
+    secretStore:
+      name: "bmc-secret-store"
+      kind: "SecretStore"
+    remoteKey: "bmc-credentials"
+    data:
+      - secretKey: "username"
+        remoteProperty: "username"
+      - secretKey: "password"
+        remoteProperty: "password"
 
 # SSH key for cluster access
 sshKey: |

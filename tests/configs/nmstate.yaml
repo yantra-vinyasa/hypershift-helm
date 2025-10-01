@@ -7,6 +7,32 @@ hypershift:
 metallb:
   apiAddressPool: "<cluster-name>-api-address-pool"
 
+# External Secrets Configuration
+externalSecrets:
+  # Pull secret for container registry authentication
+  - name: "assisted-deployment-pull-secret"
+    type: "pull-secret"
+    # Use existing secret instead of ExternalSecret
+    # ref: "my-existing-pull-secret"
+    secretStore:
+      name: "pull-secret-store"
+      kind: "SecretStore"
+    remoteKey: "pull-secret"
+    remoteProperty: "dockerconfigjson"
+  
+  # BMC credentials for bare metal hosts
+  - name: "bmc-credentials"
+    type: "bmc-secret"
+    secretStore:
+      name: "bmc-secret-store"
+      kind: "SecretStore"
+    remoteKey: "bmc-credentials"
+    data:
+      - secretKey: "username"
+        remoteProperty: "username"
+      - secretKey: "password"
+        remoteProperty: "password"
+
 baseDomain: example.com
 compute:
   - name: worker
@@ -71,6 +97,5 @@ platform:
                 next-hop-address: 10.20.184.1
                 next-hop-interface: bond0
                 table-id: 254
-pullSecret: "<pull secret>"
 sshKey: |
   ssh-rsa ...

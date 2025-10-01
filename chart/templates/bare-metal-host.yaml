@@ -1,5 +1,15 @@
 {{- $namespace := .Values.metadata.name }}
+{{- $bmcSecret := dict }}
+{{- range .Values.externalSecrets }}
+{{- if eq .type "bmc-secret" }}
+{{- $bmcSecret = . }}
+{{- end }}
+{{- end }}
+{{- if not $bmcSecret }}
+{{- $bmcSecret = dict "secretStore" (dict "name" "bmc-secret-store" "kind" "SecretStore") "remoteKey" "bmc-credentials" "data" (list (dict "secretKey" "username" "remoteProperty" "username") (dict "secretKey" "password" "remoteProperty" "password")) }}
+{{- end }}
 {{- range .Values.platform.baremetal.hosts }}
+{{- $hostName := .name }}
 {{- if not (hasKey .bmc "credentialsName") }}
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
@@ -9,20 +19,18 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: bmc-secret-store
-    kind: SecretStore
+    name: {{ $bmcSecret.secretStore.name | quote }}
+    kind: {{ $bmcSecret.secretStore.kind | quote }}
   target:
     name: "{{ .name }}-bmc-secret"
     creationPolicy: Owner
   data:
-  - secretKey: username
+{{- range $bmcSecret.data }}
+  - secretKey: {{ .secretKey | quote }}
     remoteRef:
-      key: bmc-credentials
-      property: "{{ .name }}-username"
-  - secretKey: password
-    remoteRef:
-      key: bmc-credentials
-      property: "{{ .name }}-password"
+      key: {{ $bmcSecret.remoteKey | quote }}
+      property: "{{ $hostName }}-{{ .remoteProperty }}"
+{{- end }}
 ---
 {{- end }}
 apiVersion: metal3.io/v1alpha1
